@@ -153,3 +153,4 @@ arch/*/configs/vendor/*_defconfig
 # build
 out/
 *.zip
+error.log
