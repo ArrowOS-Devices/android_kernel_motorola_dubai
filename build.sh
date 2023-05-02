@@ -62,5 +62,5 @@ cd AnyKernel3
 zip -r9 "../$ZIPNAME" * -x .git README.md *placeholder
 cd ..
 rm -rf AnyKernel3
-echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
-echo "Zip: $ZIPNAME"
+echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) :"
+echo "$(realpath $ZIPNAME)"
