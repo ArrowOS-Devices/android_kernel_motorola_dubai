@@ -629,7 +629,7 @@ static struct goodix_ext_attribute ext_attr_##_name = \
 
 /* log macro */
 extern bool debug_log_flag;
-#define ts_info(fmt, arg...)	pr_info("[GTP-INF][%s:%d] "fmt"\n", __func__, __LINE__, ##arg)
+#define ts_info(fmt, arg...)	pr_debug("[GTP-INF][%s:%d] "fmt"\n", __func__, __LINE__, ##arg)
 #define	ts_err(fmt, arg...)		pr_err("[GTP-ERR][%s:%d] "fmt"\n", __func__, __LINE__, ##arg)
 #define ts_debug(fmt, arg...)	{if (debug_log_flag) pr_info("[GTP-DBG][%s:%d] "fmt"\n", __func__, __LINE__, ##arg);}
 
