@@ -8,6 +8,7 @@
 #include <linux/of.h>
 #include <linux/of_gpio.h>
 #include <linux/err.h>
+#include <linux/sched.h>
 
 #include "msm_drv.h"
 #include "sde_connector.h"
@@ -66,6 +67,22 @@ bool is_skip_op_required(struct dsi_display *display)
 }
 
 static unsigned int cur_refresh_rate = 60;
+
+unsigned int dsi_panel_get_refresh_rate(void)
+{
+	return READ_ONCE(cur_refresh_rate);
+}
+
+static inline void dsi_display_set_refresh_rate(unsigned int refresh_rate)
+{
+	if (READ_ONCE(cur_refresh_rate) == refresh_rate)
+		return;
+
+	WRITE_ONCE(cur_refresh_rate, refresh_rate);
+	sched_set_refresh_rate(refresh_rate);
+
+	DSI_DEBUG("cur_refresh_rate set to %d\n", refresh_rate);
+}
 
 static void dsi_display_mask_ctrl_error_interrupts(struct dsi_display *display,
 			u32 mask, bool enable)
@@ -8007,10 +8024,7 @@ int dsi_display_validate_mode_change(struct dsi_display *display,
 					cur_mode->timing.v_front_porch,
 					adj_mode->timing.v_front_porch);
 			}
-			if (cur_mode->timing.refresh_rate != adj_mode->timing.refresh_rate) {
-				WRITE_ONCE(cur_refresh_rate, adj_mode->timing.refresh_rate);
-				DSI_DEBUG("cur_refresh_rate set to %d\n", adj_mode->timing.refresh_rate);
-			}
+			dsi_display_set_refresh_rate(adj_mode->timing.refresh_rate);
 		}
 
 		/* dynamic clk change use case */
@@ -9131,11 +9145,6 @@ bool dsi_display_is_panel_enable (int panel_index, int *probe_status,
 }
 EXPORT_SYMBOL(dsi_display_is_panel_enable);
 
-unsigned int dsi_panel_get_refresh_rate(void)
-{
-	return READ_ONCE(cur_refresh_rate);
-}
-
 int dsi_display_enable(struct dsi_display *display)
 {
 	int rc = 0;
@@ -9185,8 +9194,6 @@ int dsi_display_enable(struct dsi_display *display)
 
 	mode = display->panel->cur_mode;
 
-	WRITE_ONCE(cur_refresh_rate, mode->timing.refresh_rate);
-
 	if (mode->dsi_mode_flags & DSI_MODE_FLAG_DMS) {
 		rc = dsi_panel_switch(display->panel);
 		if (rc) {
@@ -9206,6 +9213,7 @@ int dsi_display_enable(struct dsi_display *display)
 		dsi_display_enable_status(display, true);
 	}
 	dsi_display_panel_id_notification(display);
+	dsi_display_set_refresh_rate(mode->timing.refresh_rate);
 	/* Block sending pps command if modeset is due to fps difference */
 	if ((mode->priv_info->dsc_enabled ||
 			mode->priv_info->vdc_enabled) &&
@@ -9472,7 +9480,11 @@ int dsi_display_disable(struct dsi_display *display)
 		display->panel->panel_initialized = false;
 		display->panel->power_mode = SDE_MODE_DPMS_OFF;
 	}
+
 	mutex_unlock(&display->display_lock);
+
+	dsi_display_set_refresh_rate(0);
+
 	SDE_EVT32(SDE_EVTLOG_FUNC_EXIT);
 	return rc;
 }

@@ -152,6 +152,9 @@ __read_mostly unsigned int sysctl_sched_window_stats_policy =
 
 unsigned int sysctl_sched_ravg_window_nr_ticks = (HZ / NR_WINDOWS_PER_SEC);
 
+static unsigned int display_sched_ravg_window_nr_ticks =
+	(HZ / NR_WINDOWS_PER_SEC);
+
 unsigned int sysctl_sched_dynamic_ravg_window_enable = (HZ == 250) || (HZ == 300);
 
 /* Window size (in ns) */
@@ -3902,11 +3905,17 @@ unlock:
 
 static inline void sched_window_nr_ticks_change(void)
 {
+	unsigned int new_ticks;
 	unsigned long flags;
 
 	spin_lock_irqsave(&sched_ravg_window_lock, flags);
-	new_sched_ravg_window = mult_frac(sysctl_sched_ravg_window_nr_ticks,
-						NSEC_PER_SEC, HZ);
+
+	new_ticks = sysctl_sched_dynamic_ravg_window_enable
+		? display_sched_ravg_window_nr_ticks
+		: sysctl_sched_ravg_window_nr_ticks;
+
+	new_sched_ravg_window = mult_frac(new_ticks, NSEC_PER_SEC, HZ);
+
 	spin_unlock_irqrestore(&sched_ravg_window_lock, flags);
 }
 
@@ -3920,9 +3929,6 @@ int sched_ravg_window_handler(struct ctl_table *table,
 
 	mutex_lock(&mutex);
 
-	if (write && !sysctl_sched_dynamic_ravg_window_enable)
-		goto unlock;
-
 	prev_value = sysctl_sched_ravg_window_nr_ticks;
 	ret = proc_douintvec_ravg_window(table, write, buffer, lenp, ppos);
 	if (ret || !write || (prev_value == sysctl_sched_ravg_window_nr_ticks))
@@ -3934,3 +3940,26 @@ unlock:
 	mutex_unlock(&mutex);
 	return ret;
 }
+
+void sched_set_refresh_rate(int refresh_rate)
+{
+	unsigned int prev_value;
+
+	if (!sysctl_sched_dynamic_ravg_window_enable)
+		return;
+
+	prev_value = display_sched_ravg_window_nr_ticks;
+	
+	if (refresh_rate > 120)
+		display_sched_ravg_window_nr_ticks = 2;
+	else if (refresh_rate > 90)
+		display_sched_ravg_window_nr_ticks = 3;
+        else if (refresh_rate > 60)
+		display_sched_ravg_window_nr_ticks = 4;
+	else
+		display_sched_ravg_window_nr_ticks = 5;
+
+	if (prev_value != display_sched_ravg_window_nr_ticks)
+		sched_window_nr_ticks_change();
+}
+EXPORT_SYMBOL(sched_set_refresh_rate);

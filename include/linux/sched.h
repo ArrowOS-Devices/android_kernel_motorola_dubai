@@ -558,6 +558,7 @@ sched_update_cpu_freq_min_max(const cpumask_t *cpus, u32 fmin, u32 fmax);
 extern void free_task_load_ptrs(struct task_struct *p);
 extern int set_task_boost(int boost, u64 period);
 extern void walt_update_cluster_topology(void);
+extern void sched_set_refresh_rate(int refresh_rate);
 
 #define RAVG_HIST_SIZE_MAX  5
 #define NUM_BUSY_BUCKETS 10
@@ -645,6 +646,7 @@ static inline void sched_update_cpu_freq_min_max(const cpumask_t *cpus,
 
 static inline void set_task_boost(int boost, u64 period) { }
 static inline void walt_update_cluster_topology(void) { }
+static inline void sched_set_refresh_rate(int refresh_rate) { }
 #endif /* CONFIG_SCHED_WALT */
 
 struct sched_rt_entity {
