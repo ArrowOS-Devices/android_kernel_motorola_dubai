@@ -76,7 +76,7 @@ typedef struct led_classdev cdev_t;
 			pr_err("[haptic_nv]" format, ##__VA_ARGS__)
 
 #define aw_dev_info(format, ...) \
-			pr_info("[haptic_nv]" format, ##__VA_ARGS__)
+			pr_debug("[haptic_nv]" format, ##__VA_ARGS__)
 
 #define aw_dev_dbg(format, ...) \
 			pr_debug("[haptic_nv]" format, ##__VA_ARGS__)
